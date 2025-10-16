@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - SecurePass{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1 class="display-5 fw-bold">
+            <i class="bi bi-speedometer2"></i> My Vault
+        </h1>
+        <p class="text-muted">Manage your saved credentials securely</p>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="bi bi-key-fill" style="font-size: 2.5rem; color: var(--primary-color);"></i>
+                <h3 class="mt-3 mb-0">{{ credentials|length }}</h3>
+                <p class="text-muted mb-0">Saved Passwords</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="bi bi-shield-check" style="font-size: 2.5rem; color: #10b981;"></i>
+                <h3 class="mt-3 mb-0">AES-256</h3>
+                <p class="text-muted mb-0">Encryption</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="bi bi-person-badge" style="font-size: 2.5rem; color: var(--secondary-color);"></i>
+                <h3 class="mt-3 mb-0">{{ current_user.role|title }}</h3>
+                <p class="text-muted mb-0">Account Type</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-12">
+        <a href="{{ url_for('add_credential') }}" class="btn btn-primary btn-lg">
+            <i class="bi bi-plus-circle"></i> Add New Credential
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-list-ul"></i> Your Credentials
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                {% if credentials %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th><i class="bi bi-globe"></i> Website</th>
+                                    <th><i class="bi bi-person"></i> Username</th>
+                                    <th><i class="bi bi-calendar"></i> Last Updated</th>
+                                    <th class="text-end"><i class="bi bi-gear"></i> Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for cred in credentials %}
+                                <tr class="credential-card">
+                                    <td>
+                                        <strong>{{ cred.website_name }}</strong><br>
+                                        {% if cred.website_url %}
+                                            <small class="text-muted">
+                                                <a href="{{ cred.website_url }}" target="_blank" 
+                                                   class="text-decoration-none">
+                                                    {{ cred.website_url[:50] }}{% if cred.website_url|length > 50 %}...{% endif %}
+                                                </a>
+                                            </small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <code>{{ cred.username }}</code>
+                                    </td>
+                                    <td>
+                                        <small>{{ cred.updated_at.strftime('%b %d, %Y %H:%M') }}</small>
+                                    </td>
+                                    <td class="text-end">
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <a href="{{ url_for('view_credential', credential_id=cred.credential_id) }}" 
+                                               class="btn btn-outline-primary" title="View">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                            <a href="{{ url_for('edit_credential', credential_id=cred.credential_id) }}" 
+                                               class="btn btn-outline-warning" title="Edit">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <button type="button" class="btn btn-outline-danger delete-button"
+                                                    data-credential-id="{{ cred.credential_id }}"
+                                                    data-website-name="{{ cred.website_name|tojson }}"
+                                                    title="Delete">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-inbox" style="font-size: 4rem; color: #64748b;"></i>
+                        <h4 class="mt-3 text-muted">No Credentials Yet</h4>
+                        <p class="text-muted">Start securing your passwords by adding your first credential</p>
+                        <a href="{{ url_for('add_credential') }}" class="btn btn-primary mt-3">
+                            <i class="bi bi-plus-circle"></i> Add First Credential
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" title="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the credential for <strong id="deleteWebsiteName"></strong>?</p>
+                <p class="text-danger">This action cannot be undone!</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form method="POST" id="deleteForm">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash"></i> Delete
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+    function confirmDelete(credentialId, websiteName) {
+        document.getElementById('deleteWebsiteName').textContent = websiteName;
+        document.getElementById('deleteForm').action = `/credential/delete/${credentialId}`;
+        new bootstrap.Modal(document.getElementById('deleteModal')).show();
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.delete-button').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var id = btn.getAttribute('data-credential-id');
+                var nameAttr = btn.getAttribute('data-website-name') || '""';
+                try {
+                    var name = JSON.parse(nameAttr);
+                } catch (e) {
+                    var name = nameAttr;
+                }
+                confirmDelete(id, name);
+            });
+        });
+    });
+</script>
+{% endblock %}
